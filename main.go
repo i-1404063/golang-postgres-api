@@ -90,14 +90,40 @@ func main() {
 	// 	db.Create(&books[idx])
 	// }
 
-	// handler route
+	// route handler for person
 	http.HandleFunc("/lib/users", getPeople)
 	http.HandleFunc("/lib/user/", getPerson)
 	http.HandleFunc("/lib/users/create", createPerson)
-	http.ListenAndServe(":3000", nil)
+	http.HandleFunc("/lib/user/delete/", deletePerson)
+
+	// route handler for book
+	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
 // all handler implemented here
+func deletePerson(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "DELETE" {
+		path := strings.Split(r.URL.String(), "/")
+		if len(path) != 5 {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Provide valid id"))
+			return
+		}
+
+		var person Person
+		db.First(&person, path[4])
+		db.Delete(&person)
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(&person)
+
+	} else {
+		w.Header().Set("Allowed method", http.MethodDelete)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Only delete request is valid for this route"))
+	}
+}
+
 func createPerson(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		bodyBytes, err := ioutil.ReadAll(r.Body)
